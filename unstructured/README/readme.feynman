@@ -58,6 +58,7 @@ Verify:
         --download-mumps \
         --download-superlu --download-superlu_dist \
         --download-hdf5=yes \
+        --with-hdf5-fortran-bindings=1 \
         --download-fftw=yes \
         --download-netcdf=yes \
         --download-zlib=yes \
@@ -85,6 +86,7 @@ Verify:
         --download-mumps \
         --download-superlu --download-superlu_dist \
         --download-hdf5=yes \
+        --with-hdf5-fortran-bindings=1 \
         --download-fftw=yes \
         --download-netcdf=yes \
         --download-zlib=yes \
