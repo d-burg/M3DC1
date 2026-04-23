@@ -60,6 +60,7 @@ Verify:
         --download-hdf5=yes \
         --download-fftw=yes \
         --download-netcdf=yes \
+        --download-zlib=yes \
         --download-zoltan \
         COPTFLAGS="-O2" CXXOPTFLAGS="-O2" FOPTFLAGS="-O2"
 
@@ -86,6 +87,7 @@ Verify:
         --download-hdf5=yes \
         --download-fftw=yes \
         --download-netcdf=yes \
+        --download-zlib=yes \
         --download-zoltan \
         COPTFLAGS="-O2" CXXOPTFLAGS="-O2" FOPTFLAGS="-O2"
 
