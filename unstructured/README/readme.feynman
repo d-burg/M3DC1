@@ -136,8 +136,8 @@ global-state API, so we MUST pin SCOREC to v2.2.9 (the last pre-handle tag).
         -DCMAKE_C_COMPILER=mpicc \
         -DCMAKE_CXX_COMPILER=mpicxx \
         -DCMAKE_Fortran_COMPILER=mpif90 \
-        -DCMAKE_C_FLAGS=" -g -O2 -fPIC -I$M3DC1_DEPS/petsc/include -I$M3DC1_DEPS/petsc/feynman-gcc-ompi/include" \
-        -DCMAKE_CXX_FLAGS=" -g -O2 -fPIC -I$M3DC1_DEPS/petsc/include -I$M3DC1_DEPS/petsc/feynman-gcc-ompi/include" \
+        -DCMAKE_C_FLAGS=" -g -O2 -fPIC -DOMPI_SKIP_MPICXX -DMPICH_SKIP_MPICXX -I$M3DC1_DEPS/petsc/include -I$M3DC1_DEPS/petsc/feynman-gcc-ompi/include" \
+        -DCMAKE_CXX_FLAGS=" -g -O2 -fPIC -DOMPI_SKIP_MPICXX -DMPICH_SKIP_MPICXX -I$M3DC1_DEPS/petsc/include -I$M3DC1_DEPS/petsc/feynman-gcc-ompi/include" \
         -DCMAKE_Fortran_FLAGS="-fPIC" \
         -DPARMETIS_LIBRARY=$M3DC1_DEPS/petsc/feynman-gcc-ompi/lib/libparmetis.so \
         -DMETIS_LIBRARY=$M3DC1_DEPS/petsc/feynman-gcc-ompi/lib/libmetis.so \
@@ -162,8 +162,8 @@ global-state API, so we MUST pin SCOREC to v2.2.9 (the last pre-handle tag).
         -DCMAKE_C_COMPILER=mpicc \
         -DCMAKE_CXX_COMPILER=mpicxx \
         -DCMAKE_Fortran_COMPILER=mpif90 \
-        -DCMAKE_C_FLAGS=" -g -O2 -fPIC -I$M3DC1_DEPS/petsc/include -I$M3DC1_DEPS/petsc/feynman-gcc-ompi-cplx/include" \
-        -DCMAKE_CXX_FLAGS=" -g -O2 -fPIC -I$M3DC1_DEPS/petsc/include -I$M3DC1_DEPS/petsc/feynman-gcc-ompi-cplx/include" \
+        -DCMAKE_C_FLAGS=" -g -O2 -fPIC -DOMPI_SKIP_MPICXX -DMPICH_SKIP_MPICXX -I$M3DC1_DEPS/petsc/include -I$M3DC1_DEPS/petsc/feynman-gcc-ompi-cplx/include" \
+        -DCMAKE_CXX_FLAGS=" -g -O2 -fPIC -DOMPI_SKIP_MPICXX -DMPICH_SKIP_MPICXX -I$M3DC1_DEPS/petsc/include -I$M3DC1_DEPS/petsc/feynman-gcc-ompi-cplx/include" \
         -DCMAKE_Fortran_FLAGS="-fPIC" \
         -DPARMETIS_LIBRARY=$M3DC1_DEPS/petsc/feynman-gcc-ompi-cplx/lib/libparmetis.so \
         -DMETIS_LIBRARY=$M3DC1_DEPS/petsc/feynman-gcc-ompi-cplx/lib/libmetis.so \
