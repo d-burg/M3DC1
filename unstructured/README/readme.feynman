@@ -7,6 +7,11 @@ Uses system GCC 11.4 + system OpenMPI 4.1.2 (on $PATH by default — no modules
 need to be loaded). All dependencies are installed under $M3DC1_DEPS (default
 $HOME/M3DC1_deps).
 
+**Shared-cluster etiquette**: feynman is shared lab hardware. Cap build and
+run resource use to ~12 cores / ~150 GB RAM at most. All build commands below
+use `-j8`; all SLURM examples cap `--mem` and `-n` accordingly. Do not remove
+these caps without coordinating with other users on LocalQ.
+
 --------------------------------------------------------------------------------
 0. Environment
 --------------------------------------------------------------------------------
@@ -41,6 +46,7 @@ Verify:
 
     ./configure \
         PETSC_ARCH=feynman-gcc-ompi \
+        --with-make-np=8 \
         --with-cc=mpicc --with-cxx=mpicxx --with-fc=mpif90 \
         --with-scalar-type=real \
         --with-shared-libraries=1 \
@@ -57,7 +63,7 @@ Verify:
         --download-zoltan \
         COPTFLAGS="-O2" CXXOPTFLAGS="-O2" FOPTFLAGS="-O2"
 
-    make PETSC_DIR=$M3DC1_DEPS/petsc PETSC_ARCH=feynman-gcc-ompi all
+    make MAKE_NP=8 PETSC_DIR=$M3DC1_DEPS/petsc PETSC_ARCH=feynman-gcc-ompi all
     make PETSC_DIR=$M3DC1_DEPS/petsc PETSC_ARCH=feynman-gcc-ompi check
 
 --------------------------------------------------------------------------------
@@ -66,6 +72,7 @@ Verify:
     cd $M3DC1_DEPS/petsc
     ./configure \
         PETSC_ARCH=feynman-gcc-ompi-cplx \
+        --with-make-np=8 \
         --with-cc=mpicc --with-cxx=mpicxx --with-fc=mpif90 \
         --with-scalar-type=complex \
         --with-shared-libraries=1 \
@@ -82,7 +89,7 @@ Verify:
         --download-zoltan \
         COPTFLAGS="-O2" CXXOPTFLAGS="-O2" FOPTFLAGS="-O2"
 
-    make PETSC_DIR=$M3DC1_DEPS/petsc PETSC_ARCH=feynman-gcc-ompi-cplx all
+    make MAKE_NP=8 PETSC_DIR=$M3DC1_DEPS/petsc PETSC_ARCH=feynman-gcc-ompi-cplx all
 
 --------------------------------------------------------------------------------
 4. SCOREC/core (PUMI)  (~10 min)
@@ -172,20 +179,29 @@ Verify:
 Binaries land in $M3DC1_CODE_DIR/unstructured/_feynman/bin/.
 
 --------------------------------------------------------------------------------
-8. Running
+8. Running  (shared cluster — keep resource use modest)
 --------------------------------------------------------------------------------
+Caps for M3D-C1 jobs on feynman:
+  -n (MPI ranks)   : 12-16 typical, 24 max
+  --mem-per-cpu    : 8G typical, 12G max (=> ~192 GB at 16 ranks)
+  Always specify a walltime with -t / --time.
+
 Interactive (debugging, short runs):
-    salloc -p LocalQ -n 16 -t 01:00:00
+    salloc -p LocalQ -n 16 --mem-per-cpu=8G -t 01:00:00
     srun -n 16 m3dc1_2d -pc_factor_mat_solver_type mumps
 
 Batch script example:
     #!/bin/bash
     #SBATCH -p LocalQ
     #SBATCH -n 16
+    #SBATCH --mem-per-cpu=8G          # => 128 GB total; raise only if needed
     #SBATCH -J m3dc1_run
     #SBATCH --time 04:00:00
     #SBATCH -o C1stdout
     srun -n 16 m3dc1_2d -pc_factor_mat_solver_type mumps
+
+If a run OOMs, prefer bumping --mem-per-cpu (to 10-12G) over adding ranks;
+MUMPS memory grows faster than ranks help for dense fronts.
 
 --------------------------------------------------------------------------------
 9. Notes
