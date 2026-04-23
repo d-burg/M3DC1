@@ -94,10 +94,15 @@ Verify:
     make MAKE_NP=8 PETSC_DIR=$M3DC1_DEPS/petsc PETSC_ARCH=feynman-gcc-ompi-cplx all
 
 --------------------------------------------------------------------------------
-4. SCOREC/core (PUMI)  (~10 min)
+4. SCOREC/core (PUMI)  (~10 min)  -- pin to v2.2.9 (pre-PCU_t handle API)
 --------------------------------------------------------------------------------
+IMPORTANT: SCOREC/core v3.0+ introduced a PCU_t handle argument to every PCU
+function. The m3dc1_scorec/ wrapper in this repo still uses the old
+global-state API, so we MUST pin SCOREC to v2.2.9 (the last pre-handle tag).
+
     cd $M3DC1_DEPS
     git clone https://github.com/SCOREC/core.git core-src
+    cd core-src && git checkout v2.2.9 && cd ..
     mkdir core-build && cd core-build
 
     cmake ../core-src \
@@ -129,8 +134,8 @@ Verify:
         -DCMAKE_C_COMPILER=mpicc \
         -DCMAKE_CXX_COMPILER=mpicxx \
         -DCMAKE_Fortran_COMPILER=mpif90 \
-        -DCMAKE_C_FLAGS=" -g -O2 -fPIC -I$M3DC1_DEPS/petsc/feynman-gcc-ompi/include" \
-        -DCMAKE_CXX_FLAGS=" -g -O2 -fPIC -I$M3DC1_DEPS/petsc/feynman-gcc-ompi/include" \
+        -DCMAKE_C_FLAGS=" -g -O2 -fPIC -I$M3DC1_DEPS/petsc/include -I$M3DC1_DEPS/petsc/feynman-gcc-ompi/include" \
+        -DCMAKE_CXX_FLAGS=" -g -O2 -fPIC -I$M3DC1_DEPS/petsc/include -I$M3DC1_DEPS/petsc/feynman-gcc-ompi/include" \
         -DCMAKE_Fortran_FLAGS="-fPIC" \
         -DPARMETIS_LIBRARY=$M3DC1_DEPS/petsc/feynman-gcc-ompi/lib/libparmetis.so \
         -DMETIS_LIBRARY=$M3DC1_DEPS/petsc/feynman-gcc-ompi/lib/libmetis.so \
@@ -155,8 +160,8 @@ Verify:
         -DCMAKE_C_COMPILER=mpicc \
         -DCMAKE_CXX_COMPILER=mpicxx \
         -DCMAKE_Fortran_COMPILER=mpif90 \
-        -DCMAKE_C_FLAGS=" -g -O2 -fPIC -I$M3DC1_DEPS/petsc/feynman-gcc-ompi-cplx/include" \
-        -DCMAKE_CXX_FLAGS=" -g -O2 -fPIC -I$M3DC1_DEPS/petsc/feynman-gcc-ompi-cplx/include" \
+        -DCMAKE_C_FLAGS=" -g -O2 -fPIC -I$M3DC1_DEPS/petsc/include -I$M3DC1_DEPS/petsc/feynman-gcc-ompi-cplx/include" \
+        -DCMAKE_CXX_FLAGS=" -g -O2 -fPIC -I$M3DC1_DEPS/petsc/include -I$M3DC1_DEPS/petsc/feynman-gcc-ompi-cplx/include" \
         -DCMAKE_Fortran_FLAGS="-fPIC" \
         -DPARMETIS_LIBRARY=$M3DC1_DEPS/petsc/feynman-gcc-ompi-cplx/lib/libparmetis.so \
         -DMETIS_LIBRARY=$M3DC1_DEPS/petsc/feynman-gcc-ompi-cplx/lib/libmetis.so \
