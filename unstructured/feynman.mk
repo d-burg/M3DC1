@@ -18,7 +18,10 @@
 
 FOPTS  = -c -fdefault-real-8 -fdefault-double-8 -fallow-argument-mismatch -cpp \
          -DPETSC_VERSION=313 -DUSEBLAS $(OPTS) -ffree-line-length-0
-CCOPTS = -c -O -DPETSC_VERSION=313 -DDEBUG
+# OMPI_SKIP_MPICXX / MPICH_SKIP_MPICXX suppress the MPI-2 C++ bindings in
+# <mpi.h>; Ubuntu's OpenMPI 4.1.2 no longer builds libmpi_cxx, so including
+# them produces undefined refs to MPI::Comm::Comm() etc at link time.
+CCOPTS = -c -O -DPETSC_VERSION=313 -DDEBUG -DOMPI_SKIP_MPICXX -DMPICH_SKIP_MPICXX
 R8OPTS = -fdefault-real-8 -fdefault-double-8
 
 ifeq ($(OPT), 1)
