@@ -112,6 +112,7 @@ Verify:
         -DZOLTAN_LIBRARY=$M3DC1_DEPS/petsc/feynman-gcc-ompi/lib/libzoltan.so \
         -DPARMETIS_INCLUDE_DIR=$M3DC1_DEPS/petsc/feynman-gcc-ompi/include \
         -DPARMETIS_LIBRARY=$M3DC1_DEPS/petsc/feynman-gcc-ompi/lib/libparmetis.so \
+        -DMETIS_INCLUDE_DIR=$M3DC1_DEPS/petsc/feynman-gcc-ompi/include \
         -DMETIS_LIBRARY=$M3DC1_DEPS/petsc/feynman-gcc-ompi/lib/libmetis.so \
         -DCMAKE_INSTALL_PREFIX=$M3DC1_DEPS/core \
         -DCMAKE_BUILD_TYPE=Release
