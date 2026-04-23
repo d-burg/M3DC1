@@ -1,0 +1,204 @@
+# Building M3D-C1 on feynman.ap.columbia.edu
+
+Target: Ubuntu 22.04 LTS, single SMP node (50 cores, ~900 GB RAM), SLURM 21.08
+(partition LocalQ), Lmod. No PPPL shared filesystems; full from-source build.
+
+Uses system GCC 11.4 + system OpenMPI 4.1.2 (on $PATH by default — no modules
+need to be loaded). All dependencies are installed under $M3DC1_DEPS (default
+$HOME/M3DC1_deps).
+
+--------------------------------------------------------------------------------
+0. Environment
+--------------------------------------------------------------------------------
+    export M3DC1_CODE_DIR=$HOME/M3DC1
+    export M3DC1_DEPS=$HOME/M3DC1_deps
+    export PATH=$M3DC1_CODE_DIR/unstructured/_feynman/bin:$PATH
+    mkdir -p $M3DC1_DEPS
+
+(Add the three exports to ~/.bashrc once the build succeeds.)
+
+Verify:
+    mpicc --version        # gcc 11.4 via openmpi
+    mpif90 --version       # gfortran 11.4
+    cmake --version        # 3.22.1
+
+--------------------------------------------------------------------------------
+1. GSL  (~2 min)
+--------------------------------------------------------------------------------
+    cd $M3DC1_DEPS
+    wget https://ftp.gnu.org/gnu/gsl/gsl-2.7.1.tar.gz
+    tar xf gsl-2.7.1.tar.gz && cd gsl-2.7.1
+    ./configure --prefix=$M3DC1_DEPS/gsl
+    make -j8 && make install
+
+--------------------------------------------------------------------------------
+2. PETSc real  (~45 min)
+--------------------------------------------------------------------------------
+    cd $M3DC1_DEPS
+    git clone -b release https://gitlab.com/petsc/petsc.git petsc
+    cd petsc
+    git checkout v3.22.0   # pin to known-good release
+
+    ./configure \
+        PETSC_ARCH=feynman-gcc-ompi \
+        --with-cc=mpicc --with-cxx=mpicxx --with-fc=mpif90 \
+        --with-scalar-type=real \
+        --with-shared-libraries=1 \
+        --with-debugging=0 \
+        --with-x=0 \
+        --download-fblaslapack \
+        --download-metis --download-parmetis \
+        --download-scalapack \
+        --download-mumps \
+        --download-superlu --download-superlu_dist \
+        --download-hdf5=yes \
+        --download-fftw=yes \
+        --download-netcdf=yes \
+        --download-zoltan \
+        COPTFLAGS="-O2" CXXOPTFLAGS="-O2" FOPTFLAGS="-O2"
+
+    make PETSC_DIR=$M3DC1_DEPS/petsc PETSC_ARCH=feynman-gcc-ompi all
+    make PETSC_DIR=$M3DC1_DEPS/petsc PETSC_ARCH=feynman-gcc-ompi check
+
+--------------------------------------------------------------------------------
+3. PETSc complex  (~45 min)  -- only needed for 2D complex (stability, COM=1)
+--------------------------------------------------------------------------------
+    cd $M3DC1_DEPS/petsc
+    ./configure \
+        PETSC_ARCH=feynman-gcc-ompi-cplx \
+        --with-cc=mpicc --with-cxx=mpicxx --with-fc=mpif90 \
+        --with-scalar-type=complex \
+        --with-shared-libraries=1 \
+        --with-debugging=0 \
+        --with-x=0 \
+        --download-fblaslapack \
+        --download-metis --download-parmetis \
+        --download-scalapack \
+        --download-mumps \
+        --download-superlu --download-superlu_dist \
+        --download-hdf5=yes \
+        --download-fftw=yes \
+        --download-netcdf=yes \
+        --download-zoltan \
+        COPTFLAGS="-O2" CXXOPTFLAGS="-O2" FOPTFLAGS="-O2"
+
+    make PETSC_DIR=$M3DC1_DEPS/petsc PETSC_ARCH=feynman-gcc-ompi-cplx all
+
+--------------------------------------------------------------------------------
+4. SCOREC/core (PUMI)  (~10 min)
+--------------------------------------------------------------------------------
+    cd $M3DC1_DEPS
+    git clone https://github.com/SCOREC/core.git core-src
+    mkdir core-build && cd core-build
+
+    cmake ../core-src \
+        -DCMAKE_C_COMPILER=mpicc \
+        -DCMAKE_CXX_COMPILER=mpicxx \
+        -DCMAKE_Fortran_COMPILER=mpif90 \
+        -DCMAKE_C_FLAGS=" -g -O2 -fPIC" \
+        -DCMAKE_CXX_FLAGS=" -g -O2 -fPIC" \
+        -DSCOREC_CXX_WARNINGS=OFF \
+        -DENABLE_ZOLTAN=ON \
+        -DZOLTAN_INCLUDE_DIR=$M3DC1_DEPS/petsc/feynman-gcc-ompi/include \
+        -DZOLTAN_LIBRARY=$M3DC1_DEPS/petsc/feynman-gcc-ompi/lib/libzoltan.so \
+        -DPARMETIS_INCLUDE_DIR=$M3DC1_DEPS/petsc/feynman-gcc-ompi/include \
+        -DPARMETIS_LIBRARY=$M3DC1_DEPS/petsc/feynman-gcc-ompi/lib/libparmetis.so \
+        -DMETIS_LIBRARY=$M3DC1_DEPS/petsc/feynman-gcc-ompi/lib/libmetis.so \
+        -DCMAKE_INSTALL_PREFIX=$M3DC1_DEPS/core \
+        -DCMAKE_BUILD_TYPE=Release
+
+    make -j8 && make install
+
+--------------------------------------------------------------------------------
+5. m3dc1_scorec (in-tree wrapper)  -- real  (~3 min)
+--------------------------------------------------------------------------------
+    cd $M3DC1_CODE_DIR/m3dc1_scorec
+    mkdir -p build-real && cd build-real
+
+    cmake .. \
+        -DCMAKE_C_COMPILER=mpicc \
+        -DCMAKE_CXX_COMPILER=mpicxx \
+        -DCMAKE_Fortran_COMPILER=mpif90 \
+        -DCMAKE_C_FLAGS=" -g -O2 -fPIC -I$M3DC1_DEPS/petsc/feynman-gcc-ompi/include" \
+        -DCMAKE_CXX_FLAGS=" -g -O2 -fPIC -I$M3DC1_DEPS/petsc/feynman-gcc-ompi/include" \
+        -DCMAKE_Fortran_FLAGS="-fPIC" \
+        -DPARMETIS_LIBRARY=$M3DC1_DEPS/petsc/feynman-gcc-ompi/lib/libparmetis.so \
+        -DMETIS_LIBRARY=$M3DC1_DEPS/petsc/feynman-gcc-ompi/lib/libmetis.so \
+        -DSCOREC_INCLUDE_DIR=$M3DC1_DEPS/core/include \
+        -DSCOREC_LIB_DIR=$M3DC1_DEPS/core/lib \
+        -DPETSC_INCLUDE_DIR=$M3DC1_DEPS/petsc/feynman-gcc-ompi/include \
+        -DPETSC_LIB_DIR=$M3DC1_DEPS/petsc/feynman-gcc-ompi/lib \
+        -DENABLE_TESTING=OFF \
+        -DENABLE_COMPLEX=OFF \
+        -DCMAKE_INSTALL_PREFIX=$M3DC1_DEPS/core \
+        -DCMAKE_BUILD_TYPE=Release
+
+    make -j8 && make install
+
+--------------------------------------------------------------------------------
+6. m3dc1_scorec -- complex  (~3 min, only if PETSc complex is built)
+--------------------------------------------------------------------------------
+    cd $M3DC1_CODE_DIR/m3dc1_scorec
+    mkdir -p build-cplx && cd build-cplx
+
+    cmake .. \
+        -DCMAKE_C_COMPILER=mpicc \
+        -DCMAKE_CXX_COMPILER=mpicxx \
+        -DCMAKE_Fortran_COMPILER=mpif90 \
+        -DCMAKE_C_FLAGS=" -g -O2 -fPIC -I$M3DC1_DEPS/petsc/feynman-gcc-ompi-cplx/include" \
+        -DCMAKE_CXX_FLAGS=" -g -O2 -fPIC -I$M3DC1_DEPS/petsc/feynman-gcc-ompi-cplx/include" \
+        -DCMAKE_Fortran_FLAGS="-fPIC" \
+        -DPARMETIS_LIBRARY=$M3DC1_DEPS/petsc/feynman-gcc-ompi-cplx/lib/libparmetis.so \
+        -DMETIS_LIBRARY=$M3DC1_DEPS/petsc/feynman-gcc-ompi-cplx/lib/libmetis.so \
+        -DSCOREC_INCLUDE_DIR=$M3DC1_DEPS/core/include \
+        -DSCOREC_LIB_DIR=$M3DC1_DEPS/core/lib \
+        -DPETSC_INCLUDE_DIR=$M3DC1_DEPS/petsc/feynman-gcc-ompi-cplx/include \
+        -DPETSC_LIB_DIR=$M3DC1_DEPS/petsc/feynman-gcc-ompi-cplx/lib \
+        -DENABLE_TESTING=OFF \
+        -DENABLE_COMPLEX=ON \
+        -DCMAKE_INSTALL_PREFIX=$M3DC1_DEPS/core \
+        -DCMAKE_BUILD_TYPE=Release
+
+    make -j8 && make install
+
+--------------------------------------------------------------------------------
+7. M3D-C1 binaries
+--------------------------------------------------------------------------------
+    cd $M3DC1_CODE_DIR/unstructured
+    make ARCH=feynman OPT=1 MAX_PTS=25                    # 2D real
+    make ARCH=feynman OPT=1 COM=1 MAX_PTS=25              # 2D complex
+    make ARCH=feynman OPT=1 3D=1 MAX_PTS=60               # 3D real
+
+Binaries land in $M3DC1_CODE_DIR/unstructured/_feynman/bin/.
+
+--------------------------------------------------------------------------------
+8. Running
+--------------------------------------------------------------------------------
+Interactive (debugging, short runs):
+    salloc -p LocalQ -n 16 -t 01:00:00
+    srun -n 16 m3dc1_2d -pc_factor_mat_solver_type mumps
+
+Batch script example:
+    #!/bin/bash
+    #SBATCH -p LocalQ
+    #SBATCH -n 16
+    #SBATCH -J m3dc1_run
+    #SBATCH --time 04:00:00
+    #SBATCH -o C1stdout
+    srun -n 16 m3dc1_2d -pc_factor_mat_solver_type mumps
+
+--------------------------------------------------------------------------------
+9. Notes
+--------------------------------------------------------------------------------
+- Simmetrix SimModSuite is NOT available on feynman (no license). As a result
+  m3dc1_meshgen is not built here. Generate .smb meshes on stellar/flux and
+  rsync them in.
+
+- If you need to use Intel MPI (module mpi/2021.16) or MKL (module mkl/2025.2)
+  for performance, you'll need a separate PETSC_ARCH (e.g. feynman-intel-impi)
+  and corresponding tweaks to feynman.mk. Not currently implemented.
+
+- To rebuild after an upstream pull:
+      cd $M3DC1_CODE_DIR/unstructured && make ARCH=feynman clean
+      make ARCH=feynman OPT=1
+  SCOREC/PETSc only need rebuilding on major dependency changes.
