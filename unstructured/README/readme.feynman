@@ -196,9 +196,14 @@ Caps for M3D-C1 jobs on feynman:
   --mem-per-cpu    : 8G typical, 12G max (=> ~192 GB at 16 ranks)
   Always specify a walltime with -t / --time.
 
+IMPORTANT: Ubuntu's OpenMPI 4.1.2 is built without PMI/PMIx SLURM
+integration, so `srun` cannot launch MPI processes directly. Use
+`mpirun` (OpenMPI's own launcher) for process spawning, with `salloc`
+or an `sbatch` script for resource reservation.
+
 Interactive (debugging, short runs):
-    salloc -p LocalQ -n 16 --mem-per-cpu=8G -t 01:00:00
-    srun -n 16 m3dc1_2d -pc_factor_mat_solver_type mumps
+    salloc -p LocalQ -n 16 --mem-per-cpu=8G -t 01:00:00 \
+        mpirun -np 16 m3dc1_2d -pc_factor_mat_solver_type mumps
 
 Batch script example:
     #!/bin/bash
@@ -208,7 +213,7 @@ Batch script example:
     #SBATCH -J m3dc1_run
     #SBATCH --time 04:00:00
     #SBATCH -o C1stdout
-    srun -n 16 m3dc1_2d -pc_factor_mat_solver_type mumps
+    mpirun -np 16 m3dc1_2d -pc_factor_mat_solver_type mumps
 
 If a run OOMs, prefer bumping --mem-per-cpu (to 10-12G) over adding ranks;
 MUMPS memory grows faster than ranks help for dense fronts.
