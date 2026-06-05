@@ -523,9 +523,21 @@ int m3dc1_matrix::preAllocateParaMat() {
                     &adjNodeOwned);
     assert(adjNodeGlb >= adjNodeOwned);
 
+    // Multi-region seam nodes couple across the region interface beyond what the
+    // mesh-adjacency tags (num_*_adj_node) count, so the exact preallocation
+    // undercounts those rows. With MAT_NEW_NONZERO_ALLOCATION_ERR=FALSE that
+    // turns every undercounted entry into a per-insert row-growth memmove on the
+    // seam-owning rank (O(N^2)), which stalls the collective MatAssemblyBegin and
+    // deadlocks the run. Memory is cheap (MatAssemblyEnd reclaims the slack), so
+    // pad both blocks generously to guarantee zero reallocation. pad=16 nodes is
+    // >> the ~1-3 extra seam couplings/row seen empirically (1068 stash mallocs).
+    const int prealloc_pad_nodes = 16;
     for (int i = 0; i < numBlockNode; ++i) {
-      dnnz.at(startIdx + i) = (1 + adjNodeOwned) * numBlockNode;
-      onnz.at(startIdx + i) = (adjNodeGlb - adjNodeOwned) * numBlockNode;
+      PetscInt d = (1 + adjNodeOwned + prealloc_pad_nodes) * numBlockNode;
+      PetscInt o = (adjNodeGlb - adjNodeOwned + prealloc_pad_nodes) * numBlockNode;
+      if (d > numBlocks) d = numBlocks; // can't exceed # local columns
+      dnnz.at(startIdx + i) = d;
+      onnz.at(startIdx + i) = o;
     }
   }
   mesh->end(ent_it);
